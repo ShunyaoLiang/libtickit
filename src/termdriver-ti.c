@@ -140,7 +140,7 @@ static void run_ti(TickitTermDriver *ttd, const char *str, int n_params, ...)
   }
 
   va_start(args, n_params);
-  for(int i = 0; i < 10 && i < n_params; i++)
+  for(int i = 0; i < 9 && i < n_params; i++)
     params[i] = unibi_var_from_num(va_arg(args, int));
 
   char tmp[64];
@@ -153,6 +153,7 @@ static void run_ti(TickitTermDriver *ttd, const char *str, int n_params, ...)
   }
 
   tickit_termdrv_write_str(ttd, buf, len);
+	va_end(args);
 }
 
 static bool goto_abs(TickitTermDriver *ttd, int line, int col)

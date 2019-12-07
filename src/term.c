@@ -177,8 +177,10 @@ TickitTerm *tickit_term_build(const struct TickitTermBuilder *_builder)
     tt->ti_hook = (struct TickitTerminfoHook){ 0 };
 
   TickitTermDriver *driver = tickit_term_build_driver(&builder);
-  if(!driver)
+  if(!driver) {
+    free(tt);
     return NULL;
+  }
 
   tt->outfd   = -1;
   tt->outfunc = NULL;
@@ -602,7 +604,7 @@ static void got_key(TickitTerm *tt, TermKey *tk, TermKeyKey *key)
       tt->mouse_buttons_held &= ~(1 << info.button);
     }
     else if(info.type == TICKIT_MOUSEEV_RELEASE) {
-      /* X10 cannot report which button was released. Just report that they 
+      /* X10 cannot report which button was released. Just report that they
        * all were */
       for(info.button = 1; tt->mouse_buttons_held; info.button++)
         if(tt->mouse_buttons_held & (1 << info.button)) {

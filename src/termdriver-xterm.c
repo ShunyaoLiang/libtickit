@@ -239,7 +239,7 @@ static bool chpen(TickitTermDriver *ttd, const TickitPen *delta, const TickitPen
       val = tickit_pen_get_colour_attr(delta, attr);
       if(val < 0)
         params[pindex++] = onoff->off;
-      else if(/*xd->cap.rgb8 &&*/ tickit_pen_has_colour_attr_rgb8(delta, attr)) {
+      else if(xd->cap.rgb8 && tickit_pen_has_colour_attr_rgb8(delta, attr)) {
         TickitPenRGB8 rgb = tickit_pen_get_colour_attr_rgb8(delta, attr);
         params[pindex++] = (onoff->on+8) | CSI_MORE_SUBPARAM;
         params[pindex++] = 2             | CSI_MORE_SUBPARAM;
@@ -434,6 +434,10 @@ static bool setctl_int(TickitTermDriver *ttd, TickitTermCtl ctl, int value)
       tickit_termdrv_write_strf(ttd, value ? "\e=" : "\e>");
       return true;
 
+    case TICKIT_TERMCTL_COLORS:
+      xd->cap.rgb8 = (value == (1<<24)) ? 1 : 0;
+      return true;
+
     default:
       return false;
   }
@@ -562,7 +566,7 @@ static int gotkey(TickitTermDriver *ttd, TermKey *tk, const TermKeyKey *key)
       return 0;
 
     if(strneq(dcs, "1$r", 3)) { // Successful DECRQSS
-      gotkey_decrqss(xd, dcs + 3, strlen(dcs + 3));
+      gotkey_decrqss(xd, dcs + 5, strlen(dcs + 5));
     }
 
     // Just eat all the DCSes
