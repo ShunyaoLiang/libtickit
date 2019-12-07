@@ -239,7 +239,7 @@ static bool chpen(TickitTermDriver *ttd, const TickitPen *delta, const TickitPen
       val = tickit_pen_get_colour_attr(delta, attr);
       if(val < 0)
         params[pindex++] = onoff->off;
-      else if(xd->cap.rgb8 && tickit_pen_has_colour_attr_rgb8(delta, attr)) {
+      else if(/*xd->cap.rgb8 &&*/ tickit_pen_has_colour_attr_rgb8(delta, attr)) {
         TickitPenRGB8 rgb = tickit_pen_get_colour_attr_rgb8(delta, attr);
         params[pindex++] = (onoff->on+8) | CSI_MORE_SUBPARAM;
         params[pindex++] = 2             | CSI_MORE_SUBPARAM;
