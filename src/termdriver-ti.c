@@ -332,35 +332,29 @@ static bool chpen(TickitTermDriver *ttd, const TickitPen *delta, const TickitPen
       run_ti(ttd, td->str.sgr_i0, 0);
   }
 
-  int c;
-  TickitPenRGB8 rgb; size_t len = 0;
+  if (td->cap.rgb8) {
+    TickitPenRGB8 fg, bg;
+    fg = tickit_pen_has_colour_attr_rgb8(delta, TICKIT_PEN_FG)
+             ? tickit_pen_get_colour_attr_rgb8(delta, TICKIT_PEN_FG)
+             : (TickitPenRGB8){0, 0, 0};
 
-  if (td->cap.rgb8 && tickit_pen_has_colour_attr_rgb8(delta, TICKIT_PEN_FG)) {
-    rgb = tickit_pen_get_colour_attr_rgb8(delta, TICKIT_PEN_FG);
-    len += snprintf(NULL, 0, "%d", rgb.r) +
-           snprintf(NULL, 0, "%d", rgb.g) +
-           snprintf(NULL, 0, "%d", rgb.b) + 10;
+    bg = tickit_pen_has_colour_attr_rgb8(delta, TICKIT_PEN_BG)
+             ? tickit_pen_get_colour_attr_rgb8(delta, TICKIT_PEN_BG)
+             : (TickitPenRGB8){0, 0, 0};
 
-    char *buffer = tickit_termdrv_get_tmpbuffer(ttd, len);
-    sprintf(buffer, "\e[38;2;%d;%d;%dm", rgb.r, rgb.g, rgb.b);
-    tickit_termdrv_write_str(ttd, buffer, len);
-  } else if ((c = tickit_pen_get_colour_attr(final, TICKIT_PEN_FG)) > -1 &&
-              c < td->cap.colours)
-    run_ti(ttd, td->str.sgr_fg, 1, c);
+    tickit_termdrv_write_strf(ttd, "\e[38;2;%d;%d;%d;48;2;%d;%d;%dm",
+                              fg.r, fg.g, fg.b, bg.r, bg.g, bg.b);
+  } else {
+    int c;
 
-  if (td->cap.rgb8 && tickit_pen_has_colour_attr_rgb8(delta, TICKIT_PEN_BG)) {
-    rgb = tickit_pen_get_colour_attr_rgb8(delta, TICKIT_PEN_BG);
-    len += snprintf(NULL, 0, "%d", rgb.r) +
-           snprintf(NULL, 0, "%d", rgb.g) +
-           snprintf(NULL, 0, "%d", rgb.b) + 10;
+    if ((c = tickit_pen_get_colour_attr(final, TICKIT_PEN_FG)) > -1 &&
+        c < td->cap.colours)
+      run_ti(ttd, td->str.sgr_fg, 1, c);
 
-    char *buffer = tickit_termdrv_get_tmpbuffer(ttd, len);
-    sprintf(buffer, "\e[48;2;%d;%d;%dm", rgb.r, rgb.g, rgb.b);
-    tickit_termdrv_write_str(ttd, buffer, len);
-  } else if ((c = tickit_pen_get_colour_attr(final, TICKIT_PEN_BG)) > -1 &&
-              c < td->cap.colours)
-    run_ti(ttd, td->str.sgr_bg, 1, c);
-
+    if ((c = tickit_pen_get_colour_attr(final, TICKIT_PEN_BG)) > -1 &&
+        c < td->cap.colours)
+      run_ti(ttd, td->str.sgr_bg, 1, c);
+  }
   return true;
 }
 
@@ -522,6 +516,7 @@ static TickitTermDriver *new(const TickitTermProbeArgs *args)
 
   td->cap.bce = unibi_get_bool(ut, unibi_back_color_erase);
   td->cap.colours = unibi_get_num(ut, unibi_max_colors);
+	td->cap.rgb8 = 0;
 
   td->str.cup    = require_ti_string(td, args, unibi_cursor_address);
   td->str.vpa    = lookup_ti_string (td, args, unibi_row_address);
