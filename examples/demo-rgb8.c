@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
   tickit_window_bind_event(root, TICKIT_WINDOW_ON_GEOMCHANGE, 0, &on_geomchange, NULL);
   tickit_window_bind_event(root, TICKIT_WINDOW_ON_EXPOSE, 0, &on_expose, NULL);
 
+  tickit_term_setctl_int(tickit_get_term(t), TICKIT_TERMCTL_COLORS, (1<<24));
   tickit_run(t);
 
   tickit_window_close(root);

@@ -61,6 +61,7 @@ struct TIDriver {
 
   struct {
     unsigned int bce:1;
+    unsigned int rgb8:1;
     int colours;
   } cap;
 
@@ -153,7 +154,7 @@ static void run_ti(TickitTermDriver *ttd, const char *str, int n_params, ...)
   }
 
   tickit_termdrv_write_str(ttd, buf, len);
-	va_end(args);
+  va_end(args);
 }
 
 static bool goto_abs(TickitTermDriver *ttd, int line, int col)
@@ -332,12 +333,32 @@ static bool chpen(TickitTermDriver *ttd, const TickitPen *delta, const TickitPen
   }
 
   int c;
-  if((c = tickit_pen_get_colour_attr(final, TICKIT_PEN_FG)) > -1 &&
-      c < td->cap.colours)
+  TickitPenRGB8 rgb; size_t len = 0;
+
+  if (td->cap.rgb8 && tickit_pen_has_colour_attr_rgb8(delta, TICKIT_PEN_FG)) {
+    rgb = tickit_pen_get_colour_attr_rgb8(delta, TICKIT_PEN_FG);
+    len += snprintf(NULL, 0, "%d", rgb.r) +
+           snprintf(NULL, 0, "%d", rgb.g) +
+           snprintf(NULL, 0, "%d", rgb.b) + 10;
+
+    char *buffer = tickit_termdrv_get_tmpbuffer(ttd, len);
+    sprintf(buffer, "\e[38;2;%d;%d;%dm", rgb.r, rgb.g, rgb.b);
+    tickit_termdrv_write_str(ttd, buffer, len);
+  } else if ((c = tickit_pen_get_colour_attr(final, TICKIT_PEN_FG)) > -1 &&
+              c < td->cap.colours)
     run_ti(ttd, td->str.sgr_fg, 1, c);
 
-  if((c = tickit_pen_get_colour_attr(final, TICKIT_PEN_BG)) > -1 &&
-      c < td->cap.colours)
+  if (td->cap.rgb8 && tickit_pen_has_colour_attr_rgb8(delta, TICKIT_PEN_BG)) {
+    rgb = tickit_pen_get_colour_attr_rgb8(delta, TICKIT_PEN_BG);
+    len += snprintf(NULL, 0, "%d", rgb.r) +
+           snprintf(NULL, 0, "%d", rgb.g) +
+           snprintf(NULL, 0, "%d", rgb.b) + 10;
+
+    char *buffer = tickit_termdrv_get_tmpbuffer(ttd, len);
+    sprintf(buffer, "\e[48;2;%d;%d;%dm", rgb.r, rgb.g, rgb.b);
+    tickit_termdrv_write_str(ttd, buffer, len);
+  } else if ((c = tickit_pen_get_colour_attr(final, TICKIT_PEN_BG)) > -1 &&
+              c < td->cap.colours)
     run_ti(ttd, td->str.sgr_bg, 1, c);
 
   return true;
@@ -361,7 +382,7 @@ static bool getctl_int(TickitTermDriver *ttd, TickitTermCtl ctl, int *value)
       return true;
 
     case TICKIT_TERMCTL_COLORS:
-      *value = td->cap.colours;
+      *value = td->cap.rgb8 ? (1<<24) : td->cap.colours;
       return true;
 
     default:
@@ -403,6 +424,9 @@ static bool setctl_int(TickitTermDriver *ttd, TickitTermCtl ctl, int value)
       tickit_termdrv_write_str(ttd, value ? td->extra->enter_mouse_mode : td->extra->exit_mouse_mode, 0);
       td->mode.mouse = !!value;
       return true;
+
+    case TICKIT_TERMCTL_COLORS:
+      td->cap.rgb8 = (value == (1<<24)) ? 1 : 0;
 
     default:
       return false;
